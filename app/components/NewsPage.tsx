@@ -10,7 +10,7 @@ type Article = {
   source: { name: string; url: string }
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_GNEWS_KEY 
+const API_KEY = "02ca4ce6d5e4393a9c66b59b05d65850"
 
 export default function NewsPage() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -19,31 +19,41 @@ export default function NewsPage() {
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("crypto")
 
-  const categories = [
-    { id: "crypto", label: "Crypto", query: "cryptocurrency bitcoin ethereum" },
-    { id: "web3", label: "Web3", query: "web3 blockchain defi nft" },
-    { id: "stocks", label: "Stocks", query: "stocks market nasdaq wall street" },
-    { id: "ai", label: "AI & Tech", query: "artificial intelligence technology startups" },
+ const categories = [
+    { id: "crypto", label: "Crypto", query: "bitcoin" },
+    { id: "web3", label: "Web3", query: "blockchain" },
+    { id: "stocks", label: "Stocks", query: "stock market" },
+    { id: "ai", label: "AI & Tech", query: "artificial intelligence" },
   ]
 
   useEffect(() => {
     setLoading(true)
     setError("")
     const active = categories.find(c => c.id === category)
-    fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(active?.query || "crypto")}&lang=en&max=40&apikey=${API_KEY}`)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then(data => {
-        if (data.errors) throw new Error(data.errors[0])
-        setArticles(data.articles || [])
-        setLoading(false)
-      })
-      .catch(err => {
-        setError(err.message)
-        setLoading(false)
-      })
+   const fetchWithRetry = (retries: number) => {
+      fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(active?.query || "crypto")}&lang=en&max=40&apikey=${API_KEY}`)
+        .then(res => {
+          if (res.status === 429 && retries > 0) {
+            setTimeout(() => fetchWithRetry(retries - 1), 2000)
+            return null
+          }
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          return res.json()
+        })
+        .then(data => {
+          if (!data) return
+          if (data.errors) throw new Error(data.errors[0])
+          setArticles(data.articles || [])
+          setLoading(false)
+        })
+        .catch(err => {
+          setError(err.message)
+          setLoading(false)
+        })
+    }
+
+    fetchWithRetry(3)
+    
   }, [category])
 
   const filtered = articles.filter(a =>
@@ -61,18 +71,19 @@ export default function NewsPage() {
   return (
     <div>
       {/* Controls */}
-      <div className="controls-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 10 }}>
-        <div style={{ display: "flex", gap: 6, background: "#111122", borderRadius: 10, padding: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 4, background: "#111122", borderRadius: 10, padding: 4, overflowX: "auto", flexShrink: 0, maxWidth: "100%" }}>
           {categories.map(c => (
             <button
               key={c.id}
               onClick={() => setCategory(c.id)}
               style={{
                 background: category === c.id ? "#3b82f6" : "transparent",
-                border: "none", borderRadius: 7, padding: "6px 14px",
+                border: "none", borderRadius: 7, padding: "6px 10px",
                 color: category === c.id ? "#fff" : "#666",
-                fontSize: 12, fontWeight: category === c.id ? 600 : 400,
-                cursor: "pointer", transition: "all 0.2s"
+                fontSize: 11, fontWeight: category === c.id ? 600 : 400,
+                cursor: "pointer", transition: "all 0.2s",
+                whiteSpace: "nowrap", flexShrink: 0
               }}
             >
               {c.label}
