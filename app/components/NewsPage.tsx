@@ -30,8 +30,8 @@ export default function NewsPage() {
     setLoading(true)
     setError("")
     const active = categories.find(c => c.id === category)
-   const fetchWithRetry = (retries: number) => {
-      fetch(`https://gnews.io/api/v4/search?q=${encodeURIComponent(active?.query || "crypto")}&lang=en&max=40&apikey=${API_KEY}`)
+  const fetchWithRetry = (retries: number) => {
+      fetch(`/api/news?q=${encodeURIComponent(active?.query || "bitcoin")}`)
         .then(res => {
           if (res.status === 429 && retries > 0) {
             setTimeout(() => fetchWithRetry(retries - 1), 2000)
@@ -53,7 +53,7 @@ export default function NewsPage() {
     }
 
     fetchWithRetry(3)
-    
+
   }, [category])
 
   const filtered = articles.filter(a =>
