@@ -34,7 +34,7 @@ export default function CryptoPage({ wallet }: Props) {
   const [search, setSearch] = useState("")
   const [fetched, setFetched] = useState(false)
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null)
-
+  const [visibleCount, setVisibleCount] = useState(14)
  useEffect(() => {
     setLoading(true)
     // Load first 100 instantly, then load the rest in background
@@ -164,49 +164,100 @@ export default function CryptoPage({ wallet }: Props) {
       {/* Search */}
       <div className="controls-wrap" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <p style={{ color: "#555", margin: 0, fontSize: 13 }}>
-        Top 1000 cryptocurrencies · click any coin for chart</p>
+          Top 1000 cryptocurrencies · click any coin for chart
+        </p>
         <input
           type="text"
           placeholder="Search coins..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
-         className="search-input" style={{ background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: 10, padding: "7px 13px", color: "#fff", fontSize: 13, outline: "none", width: 190 }} 
+          onChange={e => { setSearch(e.target.value); setVisibleCount(14) }}
+          className="search-input"
+          style={{ background: "#1a1a2e", border: "1px solid #2a2a3e", borderRadius: 10, padding: "7px 13px", color: "#fff", fontSize: 13, outline: "none", width: 190 }}
         />
       </div>
 
       {/* Coins Grid */}
       {loading ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
-          {[...Array(40)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : (
         <div className="grid-coins" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
-          {filtered.map((coin, index) => (
-         <div
-              key={`${coin.id}-${index}`}
-              onClick={() => setSelectedCoin(coin)}
-              style={{ background: "#111122", border: "1px solid #1e1e3a", borderRadius: 11, padding: "11px 13px", transition: "border-color 0.2s", cursor: "pointer" }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = "#3b82f6")}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = "#1e1e3a")}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
-                <img src={coin.image} alt={coin.name} style={{ width: 20, height: 20 }} />
-                <div>
-                  <p style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>{coin.symbol.toUpperCase()}</p>
-                  <p style={{ margin: 0, fontSize: 9, color: "#555" }}>{coin.name}</p>
-                </div>
-              </div>
-              <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 700 }}>
-                ${coin.current_price < 0.01
-                  ? coin.current_price.toFixed(6)
-                  : coin.current_price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-              </p>
-              <p style={{ margin: 0, fontSize: 10, color: coin.price_change_percentage_24h > 0 ? "#4ade80" : "#f87171" }}>
-                {coin.price_change_percentage_24h > 0 ? "▲" : "▼"} {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
-              </p>
-            </div>
-          ))}
+          {[...Array(14)].map((_, i) => <SkeletonCard key={i} />)}
         </div>
+      ) : filtered.length === 0 ? (
+        <p style={{ color: "#555", textAlign: "center", padding: "3rem 0" }}>No coins found.</p>
+      ) : (
+        <>
+          <div className="grid-coins" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 8 }}>
+            {filtered.slice(0, visibleCount).map((coin, index) => (
+              <div
+                key={`${coin.id}-${index}`}
+                onClick={() => setSelectedCoin(coin)}
+                style={{ background: "#111122", border: "1px solid #1e1e3a", borderRadius: 11, padding: "11px 13px", transition: "border-color 0.2s", cursor: "pointer" }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = "#1e1e3a")}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 7 }}>
+                  <img src={coin.image} alt={coin.name} style={{ width: 20, height: 20 }} />
+                  <div>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 600 }}>{coin.symbol.toUpperCase()}</p>
+                    <p style={{ margin: 0, fontSize: 9, color: "#555" }}>{coin.name}</p>
+                  </div>
+                </div>
+                <p style={{ margin: "0 0 3px", fontSize: 13, fontWeight: 700 }}>
+                  ${coin.current_price < 0.01
+                    ? coin.current_price.toFixed(6)
+                    : coin.current_price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </p>
+                <p style={{ margin: 0, fontSize: 10, color: coin.price_change_percentage_24h > 0 ? "#4ade80" : "#f87171" }}>
+                  {coin.price_change_percentage_24h > 0 ? "▲" : "▼"} {Math.abs(coin.price_change_percentage_24h).toFixed(2)}%
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Controls */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
+
+            {/* Coins counter */}
+            <p style={{ color: "#555", fontSize: 12, margin: 0 }}>
+              Showing <span style={{ color: "#fff", fontWeight: 600 }}>{Math.min(visibleCount, filtered.length)}</span> of <span style={{ color: "#fff", fontWeight: 600 }}>{filtered.length}</span> coins
+            </p>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              {/* Load More */}
+              {visibleCount < filtered.length && (
+                <button
+                  onClick={() => setVisibleCount(v => Math.min(v + 14, filtered.length))}
+                  style={{
+                    background: "#1a1a2e", border: "1px solid #2a2a3e",
+                    borderRadius: 10, padding: "8px 16px",
+                    color: "#fff", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#3b82f6")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a3e")}
+                >
+                  Load 14 More ↓
+                </button>
+              )}
+
+              {/* Show Less — only show if more than 14 visible */}
+              {visibleCount > 14 && (
+                <button
+                  onClick={() => setVisibleCount(14)}
+                  style={{
+                    background: "transparent", border: "1px solid #2a2a3e",
+                    borderRadius: 10, padding: "8px 16px",
+                    color: "#555", fontSize: 12, fontWeight: 600,
+                    cursor: "pointer", transition: "all 0.2s"
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = "#f87171")}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a3e")}
+                >
+                  Show Less ↑
+                </button>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Chart Modal */}
